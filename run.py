@@ -35,9 +35,12 @@ def get_total_lines_with_breakdown(user):
         commit_urls = tree.xpath('//a[@class="sha btn btn-outline BtnGroup-item"]/@href')
         for url in commit_urls:
             url = ''.join([GITHUB_URL, url])
+            # This is a really bad bottleneck, if there is a link with a better summary of additions
+            # and deletions that would be really useful
             inside_page = requests.get(url)
             inside_tree = html.fromstring(inside_page.content)
-            summary_items = inside_tree.xpath('//div[@id="toc"]/ol[@class="content collapse js-transitionable"]/li')
+            file_names = inside_tree.xpath('//div[@id="toc"]/ol[@class="content collapse js-transitionable"]/li/text()')
+            code_adds = inside_tree.xpath('/span[@class="diffstat float-right"]/span[@class="text-green"]')
             print(summary_items)
 # print("Lines of code in past year:", get_total_lines(SAMPLE_USER_ID))
 print(get_total_lines_with_breakdown(SAMPLE_USER_ID))
