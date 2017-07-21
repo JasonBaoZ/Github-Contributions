@@ -1,5 +1,6 @@
 from collections import defaultdict
 from lxml import html
+import grequests
 import json
 import matplotlib.pyplot as plt
 import re
@@ -33,19 +34,16 @@ def get_total_lines_with_breakdown(user):
     total_deletes = defaultdict(lambda: 0)
     progress = 0
     increment = float(1) / len(repositories)
-    for repo in repositories:
+    repo_commit_requests = (grequests.get(''.join([repo['html_url'], "/commits?author=", user])) for repo in repositories)
+    repo_commit_pages = grequests.imap(repo_commit_requests)
+    for repo_commit_page in repo_commit_pages:
         print "{}% repositories done".format(progress * 100)
-        scrape_url = ''.join([repo['html_url'], "/commits?author=", user])
-        scraped_page = requests.get(scrape_url)
-        tree = html.fromstring(scraped_page.content)
+        tree = html.fromstring(repo_commit_page.content)
         commit_urls = tree.xpath('//a[@class="sha btn btn-outline BtnGroup-item"]/@href')
-        for url in commit_urls:
-            url = ''.join([GITHUB_URL, url])
-
-            # This is a really bad bottleneck, if there is a link with a better summary of additions
-            # and deletions that would be really useful
-            inside_page = requests.get(url)
-            inside_tree = html.fromstring(inside_page.content)
+        commit_requests = (grequests.get(''.join([GITHUB_URL, u])) for u in commit_urls)
+        commit_request_pages = grequests.imap(commit_requests)
+        for commit_request_page in commit_request_pages:
+            inside_tree = html.fromstring(commit_request_page.content)
             file_names = inside_tree.xpath('//div[@id="toc"]/ol[@class="content collapse js-transitionable"]/li/a')
             code_adds = inside_tree.xpath('//span[@class="diffstat float-right"]/span[@class="text-green"]/text()')
             code_deletes = inside_tree.xpath('//span[@class="diffstat float-right"]/span[@class="text-red"]/text()')
@@ -70,10 +68,13 @@ def get_total_lines_with_breakdown(user):
 def graph_lines_written(code_dict, title="Code changes in past year"):
     labels = ["{} ({} lines)".format(key, code_dict[key]) for key in code_dict.keys()]
     sizes = code_dict.values()
-    fig1, ax1 = plt.subplots()
-    pie = ax1.pie(sizes, autopct='%1.1f%%')
-    plt.legend(pie[0], labels, bbox_to_anchor=(1, 0), loc="lower right",
-               bbox_transform=plt.gcf().transFigure)
-    ax1.axis("equal")
+    fig, ax = plt.subplots()
+    ax.pie(sizes, labels=labels)
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                     box.width, box.height * 0.9])
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+              fancybox=True)
+    ax.axis("equal")
     plt.title(title)
     plt.show()
