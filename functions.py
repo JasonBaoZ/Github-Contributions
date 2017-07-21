@@ -6,16 +6,6 @@ import re
 import requests
 import warnings
 
-###########
-# Edit Here
-###########
-
-SAMPLE_USER_ID = "JasonBaoZ"
-
-###########
-# End Edit
-###########
-
 GITHUB_URL = "https://github.com"
 USER_URL = "https://api.github.com/users/{}/repos?type=all"
 REPO_URL = "https://api.github.com/repos/{}/stats/contributors"
@@ -77,7 +67,7 @@ def get_total_lines_with_breakdown(user):
     return total_adds, total_deletes
 
 
-def graph_lines_written(code_dict):
+def graph_lines_written(code_dict, title="Code changes in past year"):
     labels = ["{} ({} lines)".format(key, code_dict[key]) for key in code_dict.keys()]
     sizes = code_dict.values()
     fig1, ax1 = plt.subplots()
@@ -85,8 +75,5 @@ def graph_lines_written(code_dict):
     plt.legend(pie[0], labels, bbox_to_anchor=(1, 0), loc="lower right",
                bbox_transform=plt.gcf().transFigure)
     ax1.axis("equal")
+    plt.title(title)
     plt.show()
-
-# print("Lines of code in past year:", get_total_lines(SAMPLE_USER_ID))
-total_adds, total_deletes = get_total_lines_with_breakdown(SAMPLE_USER_ID)
-graph_lines_written(total_adds)
