@@ -12,7 +12,9 @@ import warnings
 
 SAMPLE_USER_ID = "JasonBaoZ"
 
-#### End Edit
+###########
+# End Edit
+###########
 
 GITHUB_URL = "https://github.com"
 USER_URL = "https://api.github.com/users/{}/repos?type=all"
@@ -60,15 +62,17 @@ def get_total_lines_with_breakdown(user):
             # may not be an issue, just a warning
             if len(file_names) != len(code_adds) or len(code_adds) != len(code_deletes):
                 warnings.warn("File name, code adds and code deletes may not have lined up correctly")
-
+            offset = 0
             for i in range(len(file_names)):
                 # hacky way of handling empty files
-                if int(file_names[i].parentNode.children[0].children[0].text) == 0:
-                    print(url)
+                empty_path = inside_tree.xpath('//ol[@class="content collapse js-transitionable"]/li[{}]/span[@class="diffstat float-right"]/a[@class="tooltipped tooltipped-w"]/text()'.format(i + 1))
+                if len(empty_path) > 0:
+                    offset += 1
                     continue
-                file_type = file_names[i].text[file_names[i].text.rfind(".") + 1 :]
-                total_adds[file_type] += int(re.sub('[^0-9]', '', code_adds[i]))
-                total_deletes[file_type] += int(re.sub('[^0-9]', '', code_deletes[i]))
+
+                file_type = file_names[i].text[file_names[i].text.rfind(".") + 1:]
+                total_adds[file_type] += int(re.sub('[^0-9]', '', code_adds[i - offset]))
+                total_deletes[file_type] += int(re.sub('[^0-9]', '', code_deletes[i - offset]))
         progress += increment
     return total_adds, total_deletes
 
@@ -78,7 +82,7 @@ def graph_lines_written(code_dict):
     sizes = code_dict.values()
     fig1, ax1 = plt.subplots()
     pie = ax1.pie(sizes, autopct='%1.1f%%')
-    plt.legend(pie[0], labels, bbox_to_anchor=(1,0), loc="lower right",
+    plt.legend(pie[0], labels, bbox_to_anchor=(1, 0), loc="lower right",
                bbox_transform=plt.gcf().transFigure)
     ax1.axis("equal")
     plt.show()
